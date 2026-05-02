@@ -1,47 +1,50 @@
 # actionpit
 
-**Reusable GitHub Actions in one place — free to use, transparent, and ready to drop into your workflows.**
+**Reusable GitHub Actions and Azure Terraform modules — open, small pieces you can copy or reference.**
 
-**actionpit** is a public collection of ready-made Action steps you can use in any repository — from side projects to team-owned products. You don’t have to reinvent every small integration: add them to your workflow, pass the documented inputs, and focus on what matters.
+**actionpit** ships ready-made workflow steps and Terraform modules so you spend less time wiring integrations and more on product work. Code is **Apache 2.0**; read, fork, adapt.
 
 ---
 
 ## Why use it?
 
-- **Faster CI/CD** — less trial and error, fewer detours like “how do I send a Discord message from bash again?”
-- **Open and free** — the code is here: read it, fork it, adapt it. This project is licensed under **Apache 2.0**.
-- **Composable building blocks** — not a closed platform: wire them into your pipelines with a plain `uses:` reference.
-- **Community-friendly** — when something proves useful, others benefit too; if something’s missing, ideas and PRs are welcome.
+- **Less CI/CD friction** — common patterns (notifications, infra modules) already thought through.
+- **Composable** — Actions via `uses:`; Terraform via `module` blocks pointing at this repo or a fork.
+- **Transparent** — everything lives here; no hidden platform.
 
 ---
 
-## Who is it for?
+## GitHub Actions
 
-Developers and teams who care about DevOps and want to:
+Composite and scripted steps under [`github/action/`](github/action/). Each action is its own folder (`action.yml` + optional scripts).
 
-- **standardize** notifications, deploy signals, and other repetitive tasks,
-- **avoid** maintaining every little helper as a separate npm package or private repo,
-- and value solutions that are **clear** and **easy to adopt**.
+| Action | Docs |
+|--------|------|
+| [discord-deploy-notification](github/action/discord-deploy-notification/) | [docs/discord-deploy-notification.md](docs/discord-deploy-notification.md) |
+
+**Use in a workflow:** `uses: <owner>/actionpit/github/action/<name>@<ref>` and pass the documented **inputs**.
 
 ---
 
-## Actions
+## Terraform modules (Azure)
 
-- **[discord-deploy-notification](github/action/discord-deploy-notification/)** · [Documentation](docs/discord-deploy-notification.md) — Composite action: [`action.yml`](github/action/discord-deploy-notification/action.yml) defines inputs and env; [`send.sh`](github/action/discord-deploy-notification/send.sh) builds the Discord JSON and posts it with `curl`.
+Reusable modules under [`terraform/modules/azure/`](terraform/modules/azure/).
+
+| Doc | What |
+|-----|------|
+| [docs/terraform-modules.md](docs/terraform-modules.md) | One-page **module index** (table) |
+| [docs/terraform/README.md](docs/terraform/README.md) | **Grouped** descriptions |
+| [terraform/README.md](terraform/README.md) | **Conventions** (`location`, tags, naming, breaking changes) |
 
 ---
 
 ## Getting started
 
-1. Browse [`github/action/`](github/action/) — each action lives in its own subdirectory: at minimum `action.yml`; some also ship helper scripts (e.g. [`send.sh`](github/action/discord-deploy-notification/send.sh) for **discord-deploy-notification**).
-2. In your workflow, reference this repository and path (tag, branch, or SHA), for example:  
-   `uses: kovacszsolt/actionpit/github/action/<action-name>@<ref>` — or use a relative path from the same repo.
-3. Provide the documented **inputs** (webhook, text, etc.) and run the workflow.
-
-Per-action parameters and examples live in [`docs/`](docs/) (e.g. [`discord-deploy-notification.md`](docs/discord-deploy-notification.md)). This file is only the **project pitch** and **usage overview**.
+1. **Actions** — Pick a folder under [`github/action/`](github/action/), read the matching file in [`docs/`](docs/), reference the action in your workflow.
+2. **Terraform** — Point `module { source = "..." }` at this repo (or vendor the path); follow [`terraform/README.md`](terraform/README.md) for region and tags.
 
 ---
 
 ## Philosophy
 
-actionpit is not a monolith for every problem: **small, focused** Actions you can combine with your own automation. If you like the direction — star the repo, share it with your team, or build something on top. **Happy builds and smooth deploys.**
+Small, focused building blocks — not a monolith. **Happy builds and smooth deploys.**
