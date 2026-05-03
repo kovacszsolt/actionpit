@@ -12,6 +12,10 @@ locals {
     try(data.azapi_resource.swa.output.properties.stableInboundIP, null),
     try(data.azapi_resource.swa.output.properties.stableInboundIp, null),
   )
+
+  # After validation, Azure often returns an empty validation_token on read. azurerm_dns_txt_record
+  # requires record.value length 1–4096, so refresh/plan/destroy must never see an empty string.
+  apex_validation_txt = trimspace(azurerm_static_web_app_custom_domain.apex.validation_token)
 }
 
 resource "azurerm_static_web_app_custom_domain" "apex" {
@@ -27,7 +31,11 @@ resource "azurerm_dns_txt_record" "apex_validation" {
   ttl                 = var.ttl
 
   record {
-    value = azurerm_static_web_app_custom_domain.apex.validation_token
+    value = length(local.apex_validation_txt) > 0 ? local.apex_validation_txt : "swa-validation-token-placeholder"
+  }
+
+  lifecycle {
+    ignore_changes = [record]
   }
 }
 
