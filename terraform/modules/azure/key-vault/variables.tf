@@ -109,3 +109,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "secrets" {
+  description = <<-EOT
+    Secret names and plaintext values to create in the vault after it exists.
+    Values are stored in Terraform state; prefer TF_VAR_secrets or a separate secrets workflow for production.
+    Secret names must match Azure naming rules (alphanumeric and hyphens, 1-127 characters).
+  EOT
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+
+  validation {
+    condition = alltrue([
+      for name in keys(var.secrets) : can(regex("^[a-zA-Z0-9-]{1,127}$", name))
+    ])
+    error_message = "Each secret name must be 1-127 characters and contain only letters, numbers, and hyphens."
+  }
+}

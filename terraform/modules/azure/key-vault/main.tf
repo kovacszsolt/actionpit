@@ -51,6 +51,9 @@ locals {
     local.external_secrets_access_policy,
     local.user_identity_access_policy
   )
+
+  # Sorted key list only — allows creating secrets when var.secrets is sensitive (for_each cannot use sensitive maps).
+  secret_keys_sorted = sort(nonsensitive(keys(var.secrets)))
 }
 
 # Azure Key Vault resource
@@ -108,4 +111,14 @@ resource "azurerm_key_vault" "main" {
   public_network_access_enabled = var.public_network_access_enabled
 
   tags = var.tags
+}
+
+resource "azurerm_key_vault_secret" "this" {
+  count = length(local.secret_keys_sorted)
+
+  name         = local.secret_keys_sorted[count.index]
+  value        = var.secrets[local.secret_keys_sorted[count.index]]
+  key_vault_id = azurerm_key_vault.main.id
+
+  depends_on = [azurerm_key_vault.main]
 }
