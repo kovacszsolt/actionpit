@@ -13,6 +13,11 @@ variable "principal_id" {
   type        = string
 }
 
+variable "user_assigned_identity_resource_id" {
+  description = "ARM resource ID of the same UAMI (for container apps / registry identity wiring)."
+  type        = string
+}
+
 variable "role_definition_name" {
   description = "Built-in RBAC role on the registry (e.g. AcrPull, AcrPush)"
   type        = string
