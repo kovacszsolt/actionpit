@@ -23,6 +23,12 @@ output "identity_resource_id" {
   value       = azurerm_user_assigned_identity.main.id
 }
 
+# Explicit alias for consumers (e.g. Container Apps registry_identity_id / AcrPull UAMI arm id).
+output "user_assigned_identity_resource_id" {
+  description = "Same as identity_resource_id — ARM resource ID of this User Assigned Managed Identity."
+  value       = azurerm_user_assigned_identity.main.id
+}
+
 output "location" {
   description = "Identity location"
   value       = azurerm_user_assigned_identity.main.location
