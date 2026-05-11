@@ -1,0 +1,94 @@
+name: version-number
+description: Read, increment, and persist an environment semantic version variable.
+
+inputs:
+  environment_name:
+    description: GitHub Environment name that owns the target variable.
+    required: true
+  variable_name:
+    description: Environment variable name that stores the semantic version.
+    required: true
+  write_token:
+    description: Token with permission to read and update environment variables.
+    required: true
+  bump:
+    description: Semantic version segment to increment (major, minor, patch).
+    required: false
+    default: patch
+  repository_name:
+    description: Repository in owner/name format. Defaults to current repository.
+    required: false
+    default: ${{ github.repository }}
+
+outputs:
+  version_number:
+    description: Incremented semantic version, or 0.0.0-unknown on fallback.
+    value: ${{ steps.bump.outputs.version_number }}
+
+runs:
+  using: composite
+  steps:
+    - id: bump
+      name: Resolve and update version variable
+      shell: bash
+      env:
+        INPUT_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
+        INPUT_VARIABLE_NAME: ${{ inputs.variable_name }}
+        INPUT_WRITE_TOKEN: ${{ inputs.write_token }}
+        INPUT_BUMP: ${{ inputs.bump }}
+        INPUT_REPOSITORY_NAME: ${{ inputs.repository_name }}
+      run: |
+        set -euo pipefail
+
+        environment_name="${INPUT_ENVIRONMENT_NAME}"
+        variable_name="${INPUT_VARIABLE_NAME}"
+        write_token="${INPUT_WRITE_TOKEN}"
+        bump="${INPUT_BUMP:-patch}"
+        repository_name="${INPUT_REPOSITORY_NAME}"
+
+        echo "[version-number] Looking up '${variable_name}' in environment '${environment_name}' for repository '${repository_name}' (bump=${bump})."
+
+        get_response="$(curl -sS -L -X GET \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${write_token}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          "https://api.github.com/repos/${repository_name}/environments/${environment_name}/variables/${variable_name}")"
+
+        current_version="$(printf '%s' "${get_response}" | jq -r '.value // empty')"
+        echo "[version-number] Retrieved current value: '${current_version}'."
+
+        if [ -z "${current_version}" ]; then
+          echo "[version-number] Variable is missing or unreadable. Falling back to 0.0.0-unknown."
+          echo "version_number=0.0.0-unknown" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if ! [[ "${current_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "[version-number] Current value is not semantic version (X.Y.Z). Falling back to 0.0.0-unknown."
+          echo "version_number=0.0.0-unknown" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        next_version="$(npx --yes semver "${current_version}" -i "${bump}")"
+        if [ -z "${next_version}" ]; then
+          echo "[version-number] Failed to increment semantic version. Falling back to 0.0.0-unknown."
+          echo "version_number=0.0.0-unknown" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        patch_response="$(curl -sS -L -X PATCH \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${write_token}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          "https://api.github.com/repos/${repository_name}/environments/${environment_name}/variables/${variable_name}" \
+          -d "{\"name\":\"${variable_name}\",\"value\":\"${next_version}\"}")"
+
+        patched_value="$(printf '%s' "${patch_response}" | jq -r '.value // empty')"
+        if [ "${patched_value}" != "${next_version}" ]; then
+          echo "[version-number] Update verification failed (expected '${next_version}', got '${patched_value}'). Falling back to 0.0.0-unknown."
+          echo "version_number=0.0.0-unknown" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "[version-number] Updated '${variable_name}' to '${next_version}'."
+        echo "version_number=${next_version}" >> "$GITHUB_OUTPUT"
