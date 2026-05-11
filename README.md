@@ -16,13 +16,17 @@
 
 ## GitHub Actions
 
-Composite and scripted steps under [`github/action/`](github/action/). Each action is its own folder (`action.yml` + optional scripts).
+Composite and scripted steps under [`github/action/`](github/action/) and [`.github/actions/`](.github/actions/). Each action is its own folder (`action.yml` + optional scripts).
 
 | Action | Docs |
 |--------|------|
 | [discord-deploy-notification](github/action/discord-deploy-notification/) | [docs/discord-deploy-notification.md](docs/discord-deploy-notification.md) |
+| [version-number](.github/actions/version-number/) | [docs/version-number.md](docs/version-number.md) |
 
-**Use in a workflow:** `uses: <owner>/actionpit/github/action/<name>@<ref>` and pass the documented **inputs**.
+**Use in a workflow:** `uses: <owner>/actionpit/<action-path>@<ref>` and pass the documented **inputs**.
+Examples:
+- `uses: <owner>/actionpit/github/action/discord-deploy-notification@<ref>`
+- `uses: <owner>/actionpit/.github/actions/version-number@<ref>`
 
 ---
 
@@ -40,7 +44,7 @@ Reusable modules under [`terraform/modules/azure/`](terraform/modules/azure/).
 
 ## Getting started
 
-1. **Actions** — Pick a folder under [`github/action/`](github/action/), read the matching file in [`docs/`](docs/), reference the action in your workflow.
+1. **Actions** — Pick a folder under [`github/action/`](github/action/) or [`.github/actions/`](.github/actions/), read the matching file in [`docs/`](docs/), reference the action in your workflow.
 2. **Terraform** — Point `module { source = "..." }` at this repo (or vendor the path); follow [`terraform/README.md`](terraform/README.md) for region and tags.
 
 ---
