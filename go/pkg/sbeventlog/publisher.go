@@ -27,6 +27,10 @@ type Meta struct {
 	LogEventServiceWakeURL string
 	// Output: vesszős lista (see ParseLogEventOutput). Zero: NewPublisher infers servicebus if sender exists.
 	Output Output
+	// ConsoleLog: filters stdout when Output includes console; empty = print all.
+	// "minimal" = only .app.started, .app.stopped, and events with level error.
+	// Otherwise: severity threshold (debug, info, warn, error). Service Bus is never filtered.
+	ConsoleLog string
 }
 
 // Publisher sends one envelope JSON per message. Nil-safe: no-op when not constructed.
@@ -61,12 +65,22 @@ func NewPublisher(sender *azservicebus.Sender, meta Meta) *Publisher {
 	}
 }
 
+// SpanMeta is optional span linkage for oo_bridge OTLP (OpenObserve trace tree). Zero value omits fields.
+type SpanMeta struct {
+	TraceID      string // e.g. run-20260515T210912Z
+	SpanID       string // 16 hex chars
+	ParentSpanID string // 16 hex chars; empty for root spans
+}
+
 type envelope struct {
 	EventName            string          `json:"event_name"`
 	ServiceVersion       string          `json:"service_version"`
 	ServiceName          string          `json:"service_name"`
 	ContainerAppRevision string          `json:"container_app_revision"`
 	OpenObserveStream    string          `json:"openobserve_stream,omitempty"`
+	TraceID              string          `json:"trace_id,omitempty"`
+	SpanID               string          `json:"span_id,omitempty"`
+	ParentSpanID         string          `json:"parent_span_id,omitempty"`
 	Level                string          `json:"level"`
 	Message              json.RawMessage `json:"message"`
 }
@@ -75,6 +89,11 @@ type envelope struct {
 // message must be a JSON object (starts with '{').
 // Console branch: one line JSON via standard log (before Service Bus send).
 func (p *Publisher) Publish(ctx context.Context, eventName, level string, message json.RawMessage) error {
+	return p.PublishWithSpan(ctx, eventName, level, message, SpanMeta{})
+}
+
+// PublishWithSpan is like Publish but adds optional trace_id, span_id, parent_span_id on the envelope.
+func (p *Publisher) PublishWithSpan(ctx context.Context, eventName, level string, message json.RawMessage, span SpanMeta) error {
 	if p == nil {
 		return nil
 	}
@@ -90,7 +109,7 @@ func (p *Publisher) Publish(ctx context.Context, eventName, level string, messag
 	if level == "" {
 		level = "info"
 	}
-	body, err := json.Marshal(envelope{
+	env := envelope{
 		EventName:            eventName,
 		ServiceVersion:       p.meta.ServiceVersion,
 		ServiceName:          p.meta.ServiceName,
@@ -98,11 +117,21 @@ func (p *Publisher) Publish(ctx context.Context, eventName, level string, messag
 		OpenObserveStream:    strings.TrimSpace(p.meta.OpenObserveStream),
 		Level:                level,
 		Message:              msg,
-	})
+	}
+	if tid := strings.TrimSpace(span.TraceID); tid != "" {
+		env.TraceID = tid
+	}
+	if sid := strings.TrimSpace(span.SpanID); sid != "" {
+		env.SpanID = sid
+	}
+	if pid := strings.TrimSpace(span.ParentSpanID); pid != "" {
+		env.ParentSpanID = pid
+	}
+	body, err := json.Marshal(env)
 	if err != nil {
 		return fmt.Errorf("sbeventlog: marshal: %w", err)
 	}
-	if p.out.UseConsole() {
+	if p.out.UseConsole() && ShouldEmitConsoleLine(p.meta.ConsoleLog, eventName, level) {
 		log.Printf("[sbeventlog] %s", body)
 	}
 	if p.out.UseServiceBus() {
