@@ -109,3 +109,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "secrets" {
+  description = "Secret name to value map written into the Key Vault (azurerm_key_vault_secret)."
+  type        = map(string)
+  default     = {}
+}
