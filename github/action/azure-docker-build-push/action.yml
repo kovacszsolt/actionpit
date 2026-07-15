@@ -1,0 +1,129 @@
+name: AzureDocker build and push
+description: Bump semver, build, and push a Docker image to Azure Container Registry with metadata tags and layer caching.
+
+inputs:
+  registry:
+    description: Container registry host (without image path).
+    required: true
+  image_name:
+    description: Image repository path inside the registry; also used as cache scope when cache_scope is omitted.
+    required: true
+  acr_username:
+    description: ACR username.
+    required: true
+  acr_password:
+    description: ACR password.
+    required: true
+  environment_name:
+    description: GitHub Environment that owns the version variable.
+    required: true
+  variable_name:
+    description: GitHub Environment variable holding the semver.
+    required: true
+  write_token:
+    description: Token with permission to read and update environment variables.
+    required: true
+  repository_name:
+    description: Repository in owner/name format.
+    required: false
+    default: ${{ github.repository }}
+  bump:
+    description: Semver bump (major, minor, patch).
+    required: false
+    default: patch
+  docker_context:
+    description: Docker build context path.
+    required: false
+    default: .
+  dockerfile:
+    description: Dockerfile path relative to repository root.
+    required: false
+    default: ./Dockerfile
+
+outputs:
+  version_number:
+    description: Bumped semver from version-number action.
+    value: ${{ steps.version_number.outputs.version_number }}
+  image_tags:
+    description: Newline-separated tags from docker/metadata-action.
+    value: ${{ steps.export_tags.outputs.image_tags }}
+  deploy_image:
+    description: Full image reference with version tag (for deploy).
+    value: ${{ steps.export_tags.outputs.deploy_image }}
+  t:
+    description: UTC build timestamp (IMAGE_BUILD_TIME).
+    value: ${{ steps.build_info.outputs.t }}
+
+runs:
+  using: composite
+  steps:
+    - id: build_info
+      name: Stamp
+      shell: bash
+      run: echo "t=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+    - id: version_number
+      name: Version Number
+      uses: kovacszsolt/actionpit/github/action/version-number@main
+      with:
+        environment_name: ${{ inputs.environment_name }}
+        repository_name: ${{ inputs.repository_name }}
+        variable_name: ${{ inputs.variable_name }}
+        bump: ${{ inputs.bump }}
+        write_token: ${{ inputs.write_token }}
+
+    - name: Setup Buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Docker login
+      uses: docker/login-action@v4
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.acr_username }}
+        password: ${{ inputs.acr_password }}
+
+    - id: meta
+      name: Meta
+      uses: docker/metadata-action@v6
+      with:
+        images: ${{ inputs.registry }}/${{ inputs.image_name }}
+        tags: |
+          type=ref,event=branch
+          type=raw,value=${{ steps.version_number.outputs.version_number }}
+
+    - name: Build and Push
+      uses: docker/build-push-action@v7
+      with:
+        context: ${{ inputs.docker_context }}
+        file: ${{ inputs.dockerfile }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          IMAGE_BUILD_TIME=${{ steps.build_info.outputs.t }}
+          IMAGE_GIT_SHA=${{ github.sha }}
+          VERSION_NUMBER=${{ steps.version_number.outputs.version_number }}
+          SERVICE_NAME=${{ inputs.image_name }}
+        cache-from: |
+          type=gha,scope=${{ inputs.image_name }}
+          type=registry,ref=${{ inputs.registry }}/${{ inputs.image_name }}:buildcache
+        cache-to: |
+          type=gha,scope=${{ inputs.image_name }},mode=max
+          type=registry,ref=${{ inputs.registry }}/${{ inputs.image_name }}:buildcache,mode=max
+
+    - id: export_tags
+      name: Export Tags
+      if: always()
+      shell: bash
+      env:
+        RAW_TAGS: ${{ steps.meta.outputs.tags }}
+        REGISTRY: ${{ inputs.registry }}
+        IMAGE_NAME: ${{ inputs.image_name }}
+        VERSION_NUMBER: ${{ steps.version_number.outputs.version_number }}
+      run: |
+        echo "deploy_image=${REGISTRY}/${IMAGE_NAME}:${VERSION_NUMBER}" >> "$GITHUB_OUTPUT"
+        {
+          echo 'image_tags<<EOF'
+          printf '%s\n' "$RAW_TAGS"
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"
