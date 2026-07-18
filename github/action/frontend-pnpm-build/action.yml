@@ -1,0 +1,102 @@
+name: Frontend pnpm build
+description: Install and build a pnpm Vite frontend, write dist/health.json, and upload the dist artifact.
+
+inputs:
+  app_path:
+    description: Frontend app directory (working-directory and dist root).
+    required: true
+  artifact_name:
+    description: Name for the uploaded dist artifact.
+    required: true
+  lockfile_path:
+    description: Path to pnpm-lock.yaml for dependency caching.
+    required: true
+  pnpm_version:
+    description: pnpm version for pnpm/action-setup.
+    required: false
+    default: "10.17.1"
+  node_version:
+    description: Node.js version for setup-node.
+    required: false
+    default: "22"
+  vite_api_base_url:
+    description: VITE_API_BASE_URL build env.
+    required: false
+    default: ""
+  vite_auth_enabled:
+    description: VITE_AUTH_ENABLED build env.
+    required: false
+    default: ""
+  vite_auth_login_url:
+    description: VITE_AUTH_LOGIN_URL build env.
+    required: false
+    default: ""
+  vite_app_name:
+    description: VITE_APP_NAME build env.
+    required: false
+    default: ""
+  vite_deploy_theme:
+    description: VITE_DEPLOY_THEME build env.
+    required: false
+    default: ""
+  vite_version_number:
+    description: VITE_VERSION_NUMBER build env.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm_version }}
+
+    - uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: pnpm
+        cache-dependency-path: ${{ inputs.lockfile_path }}
+
+    - name: Install and build
+      shell: bash
+      working-directory: ${{ inputs.app_path }}
+      env:
+        VITE_API_BASE_URL: ${{ inputs.vite_api_base_url }}
+        VITE_AUTH_ENABLED: ${{ inputs.vite_auth_enabled }}
+        VITE_AUTH_LOGIN_URL: ${{ inputs.vite_auth_login_url }}
+        VITE_APP_NAME: ${{ inputs.vite_app_name }}
+        VITE_DEPLOY_THEME: ${{ inputs.vite_deploy_theme }}
+        VITE_VERSION_NUMBER: ${{ inputs.vite_version_number }}
+      run: pnpm install --frozen-lockfile && pnpm run build
+
+    - name: Write dist/health.json
+      shell: bash
+      working-directory: ${{ inputs.app_path }}
+      env:
+        GIT_SHA: ${{ github.sha }}
+        BRANCH: ${{ github.ref_name }}
+        PUSHER_EMAIL: ${{ github.event.pusher.email }}
+        HEAD_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+      run: |
+        set -euo pipefail
+        EMAIL="${PUSHER_EMAIL:-}"
+        if [ -z "$EMAIL" ]; then
+          EMAIL="${HEAD_AUTHOR_EMAIL:-}"
+        fi
+        if [ -z "$EMAIL" ]; then
+          EMAIL="$(git -C "${GITHUB_WORKSPACE}" log -1 --format='%ae' 2>/dev/null || true)"
+        fi
+        jq -n \
+          --arg GIT_SHA "$GIT_SHA" \
+          --arg BRANCH "$BRANCH" \
+          --arg BUILD_TRIGGER_EMAIL "$EMAIL" \
+          --arg BUILD_TIME "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          '{GIT_SHA: $GIT_SHA, BRANCH: $BRANCH, BUILD_TRIGGER_EMAIL: $BUILD_TRIGGER_EMAIL, BUILD_TIME: $BUILD_TIME}' \
+          > dist/health.json
+
+    - name: Upload dist artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.app_path }}/dist
+        if-no-files-found: error
