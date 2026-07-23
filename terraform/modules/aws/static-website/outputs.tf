@@ -8,6 +8,19 @@ output "additional_hostnames" {
   value       = var.additional_hostnames
 }
 
+output "managed_hostnames" {
+  description = "Managed CloudFront aliases / ACM SANs with Route53 DNS in this zone."
+  value       = var.managed_hostnames
+}
+
+output "managed_route53_alias_fqdns" {
+  description = "FQDNs of Route53 alias records for managed_hostnames, keyed by relative record name."
+  value = {
+    for name in values(local.managed_route53_record_names) :
+    name => module.dns.alias_record_fqdns[name]
+  }
+}
+
 output "domain_validation_options" {
   description = "ACM DNS validation records for all certificate domains (for manual SAN validation)."
   value       = module.acm.domain_validation_options

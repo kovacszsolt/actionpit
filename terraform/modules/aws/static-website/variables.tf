@@ -19,6 +19,12 @@ variable "additional_hostnames" {
   default     = []
 }
 
+variable "managed_hostnames" {
+  description = "Extra CloudFront aliases and ACM SANs in the same Route53 zone; DNS alias + ACM validation records are created."
+  type        = list(string)
+  default     = []
+}
+
 variable "zone_name" {
   description = "Route53 hosted zone name (e.g. example.com)."
   type        = string
