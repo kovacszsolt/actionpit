@@ -40,6 +40,7 @@ Where supported, pass `tags` as `map(string)`. Align with your organisation’s 
 | `route53` | **Hosted zone** (create or reuse) plus alias / CNAME / TXT / MX records. |
 | `s3` | **S3 bucket** with encryption, versioning, public-access block, optional CloudFront OAC policy. |
 | `s3-cloudfront-oac-policy` | Attach a **CloudFront OAC read policy** to an existing bucket. |
+| `ses` | **SES domain identity** (SESv2 Easy DKIM), Route53 DKIM / MAIL FROM / SPF / DMARC, configuration set, optional SMTP IAM user. |
 | `static-website` | Composite: **S3 + ACM + CloudFront + Route53 alias** and a GitHub Actions deploy IAM user. |
 
 ---
@@ -56,6 +57,7 @@ Where supported, pass `tags` as `map(string)`. Align with your organisation’s 
 - **`route53`** – Create a hosted zone (`create_zone = true`) or attach records to an existing `zone_id`. Supports map-driven `alias_records`, `cname_records`, `txt_records`, and `mx_records` (relative names; `@` for apex).
 - **`acm`** – Requests a DNS-validated certificate via `aws.us_east_1`. Optionally writes validation records into `zone_id` for domains listed in `dns_validation_domains` (defaults to the primary `domain_name` so extra SANs can be validated elsewhere). Set `wait_for_validation` to wait for full issuance.
 - **`azure-container-app-dns`** – Cross-cloud helper: for `hostname` under `zone_name`, creates the Container App **CNAME** to `cname_target` and the **`asuid.<label>` TXT** with `asuid_verification_id`. Composes the `route53` module.
+- **`ses`** – Verifies a **domain** with SESv2 Easy DKIM (`RSA_2048_BIT`), writes DKIM CNAMEs plus custom MAIL FROM (`mail.<domain>` by default) MX/SPF, apex SPF, and `_dmarc` TXT into `zone_id`. Creates a configuration set and (by default) an IAM SMTP user; sensitive outputs: `smtp_username`, `smtp_password` (`ses_smtp_password_v4`).
 
 ### Storage and CDN
 
@@ -80,7 +82,8 @@ account ──► identity-center-account-assignment
                 │
 route53 (zone) ─┬─► acm (us-east-1 validation)
                 ├─► static-website  ──► s3 + cloudfront + acm + route53 + IAM deploy
-                └─► azure-container-app-dns  ──► route53 CNAME + asuid TXT
+                ├─► azure-container-app-dns  ──► route53 CNAME + asuid TXT
+                └─► ses  ──► domain identity + DKIM/MAIL FROM DNS + SMTP IAM user
 
 s3 ──► cloudfront ──► s3-cloudfront-oac-policy   (split apply / existing bucket)
 ```
@@ -127,6 +130,7 @@ Wire provider aliases exactly as each module’s `versions.tf` / nested modules 
 - Prefer **private S3 + CloudFront OAC**; do not open buckets publicly for static hosting.
 - ACM for CloudFront is always **`us-east-1`**.
 - `static-website` stores the deploy **secret access key** in state (`sensitive = true`). Prefer short-lived credentials or OIDC where possible; if using the generated key, copy once to GitHub Secrets and treat state access as privileged.
+- `ses` stores the SMTP **username/password** in state (`sensitive = true`). Copy once to your secret store and treat state access as privileged. New accounts remain in the **SES sandbox** until AWS grants production access.
 - Organizations **account email** must be globally unique and is hard to change after create.
 
 ---
