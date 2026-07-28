@@ -16,6 +16,7 @@ Prefer a **tagged release** (or commit SHA) over a floating branch for productio
 go get github.com/kovacszsolt/actionpit/go/pkg/openobserve@<ref>
 go get github.com/kovacszsolt/actionpit/go/pkg/oolifecycle@<ref>
 go get github.com/kovacszsolt/actionpit/go/pkg/ooai@<ref>
+go get github.com/kovacszsolt/actionpit/go/pkg/auth@<ref>
 ```
 
 Local development against a checkout (optional `replace`):
@@ -32,12 +33,15 @@ replace github.com/kovacszsolt/actionpit/go/pkg/openobserve => ../actionpit/go/p
 | **openobserve** | [`go/pkg/openobserve/`](../../go/pkg/openobserve/) | HTTP `_json` ingest client, env/meta loading, nil-safe structured `Publisher` |
 | **oolifecycle** | [`go/pkg/oolifecycle/`](../../go/pkg/oolifecycle/) | App lifecycle helpers: `app.started`, `app.stopped`, `pipeline.failed` |
 | **ooai** | [`go/pkg/ooai/`](../../go/pkg/ooai/) | AI call cost calculation and `{service}.ai.call` events |
+| **auth** | [`go/pkg/auth/`](../../go/pkg/auth/) | HS256 JWT verification (`iss=auth-ba`) plus optional Echo Bearer middleware |
 
 Dependency flow:
 
 ```text
 ooai ────────┐
 oolifecycle ─┼──► openobserve
+
+auth (standalone; echo subpackage for Echo HTTP services)
 ```
 
 ---
@@ -49,7 +53,7 @@ oolifecycle ─┼──► openobserve
 - **Nil-safe** — `nil` publisher / client is a no-op.
 - **Event names** — `{SERVICE_NAME}.{domain}.{action}` (e.g. `my-cron.app.started`, `my-cron.ai.call`).
 - **Levels** — `info`, `warn`, `error`. Never log secrets, passwords, JWTs, or full raw credentials.
-- **Go version** — modules target Go `1.23.0+`.
+- **Go version** — modules target Go `1.23.0+` (`auth` requires `1.25.0+`).
 
 ---
 
@@ -184,6 +188,67 @@ ooai.PublishAICall(pub, ctx, "humor_generate", ooai.AICallFields{
 
 ---
 
+### `auth`
+
+HS256 Bearer JWT validation for admin/API backends. Core package is framework-agnostic;
+[`auth/echo`](../../go/pkg/auth/echo/) adds Echo middleware.
+
+#### Types
+
+| Type | Role |
+|------|------|
+| `JWTAuth` | Loaded config: secret, issuer, domain, optional tenant enforcement |
+| `Verifier` | Parses and validates raw JWT strings |
+| `Claims` | Validated `user_id`, `tenant_id`, `email`, `name`, `domain` |
+| `VerifyError` | Stable error code + message + optional field details |
+| `echo.JWTAuthOptions` | Public-path exceptions, dev bypass, optional `OnUnauthorized` hook |
+| `echo.RequireBearerJWT` | Echo middleware: Bearer header → context keys |
+
+JWT contract: **HS256**, default issuer `auth-ba`, claims `user_id`, `tenant_id`, `email`, `name`, `domain`.
+
+#### Environment
+
+| Variable | Required when | Default | Notes |
+|----------|---------------|---------|-------|
+| `JWT_AUTH_ENABLED` | — | `true` | When `false`, secret/domain are not required |
+| `JWT_SECRET` | enabled | — | At least 32 characters; must match auth tenant `jwt_secret` |
+| `JWT_ISSUER` | — | `auth-ba` | Must match token `iss` |
+| `JWT_DOMAIN` | enabled | — | Must match token `domain` claim (e.g. admin app origin) |
+| `JWT_TENANT_ID` | — | `0` | When `> 0`, enforces token `tenant_id` |
+
+#### Bootstrap example
+
+```go
+cfg, err := auth.LoadJWTAuth()
+if err != nil {
+    return err
+}
+
+var verifier *auth.Verifier
+if cfg.Enabled {
+    verifier = auth.NewVerifier(cfg)
+}
+
+e.Use(authecho.RequireBearerJWT(verifier, authecho.JWTAuthOptions{
+    Enabled:          cfg.Enabled,
+    PlaygroundPublic: playgroundEnabled,
+    OnUnauthorized: func(c echov4.Context, detail map[string]any) {
+        // optional: merge into structured HTTP error logging
+    },
+}))
+```
+
+Public paths (no JWT): `/`, `/health*`, `/healthz*`, `OPTIONS`, and optionally `GET /graphql`
+when `PlaygroundPublic` is true. When `Enabled` is false, requests pass through with a dev
+context (`dev@local`, `tenant_id=1`).
+
+#### Error codes (401 JSON)
+
+`JWT_REQUIRED`, `JWT_MISSING`, `JWT_EXPIRED`, `JWT_INVALID_SIGNATURE`, `JWT_ISSUER_MISMATCH`,
+`JWT_DOMAIN_MISMATCH`, `JWT_TENANT_MISMATCH`, `JWT_INVALID_CLAIMS`, `JWT_MALFORMED`.
+
+---
+
 ## Suggested wiring (long-running job / cron)
 
 1. `openobserve.LoadEnv(...)` at startup; fail fast if OpenObserve output is misconfigured.
@@ -191,6 +256,13 @@ ooai.PublishAICall(pub, ctx, "humor_generate", ooai.AICallFields{
 3. Create one `Publisher` with a session / run UUID.
 4. Emit `oolifecycle.PublishAppStarted` / `PublishAppStopped` (or `PublishPipelineFailed` on hard failure).
 5. After each AI provider call, emit `ooai.PublishAICall` with pricing fields when available.
+
+## Suggested wiring (HTTP API / Echo)
+
+1. `auth.LoadJWTAuth()` at startup; fail fast when enabled but secret/domain are missing.
+2. `auth.NewVerifier(cfg)` when JWT auth is enabled.
+3. Register `authecho.RequireBearerJWT` early in the middleware chain (after request ID / recovery).
+4. Wire `OnUnauthorized` to structured HTTP error logging when using `openobserve` (or similar).
 
 ---
 
@@ -201,6 +273,7 @@ ooai.PublishAICall(pub, ctx, "humor_generate", ooai.AICallFields{
 | [`go/pkg/openobserve/`](../../go/pkg/openobserve/) | Source + tests |
 | [`go/pkg/oolifecycle/`](../../go/pkg/oolifecycle/) | Source + tests |
 | [`go/pkg/ooai/`](../../go/pkg/ooai/) | Source + tests |
+| [`go/pkg/auth/`](../../go/pkg/auth/) | Source + tests |
 | [`docs/github-action/README.md`](../github-action/README.md) | GitHub Actions catalogue |
 | [`docs/terraform/aws/README.md`](../terraform/aws/README.md) | Terraform AWS modules |
 | [`docs/terraform/azure/README.md`](../terraform/azure/README.md) | Terraform Azure modules |
