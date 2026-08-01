@@ -39,3 +39,18 @@ output "smtp_user_name" {
   description = "IAM user name created for SMTP sending. Null when create_smtp_user is false."
   value       = var.create_smtp_user ? aws_iam_user.smtp[0].name : null
 }
+
+output "inbound_bucket_id" {
+  description = "S3 bucket ID for received emails. Null when enable_inbound is false."
+  value       = var.enable_inbound ? aws_s3_bucket.inbound[0].id : null
+}
+
+output "inbound_bucket_arn" {
+  description = "S3 bucket ARN for received emails. Null when enable_inbound is false."
+  value       = var.enable_inbound ? aws_s3_bucket.inbound[0].arn : null
+}
+
+output "inbound_rule_set_name" {
+  description = "Active SES receipt rule set name. Null when enable_inbound is false."
+  value       = var.enable_inbound ? aws_ses_receipt_rule_set.inbound[0].rule_set_name : null
+}
