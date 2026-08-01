@@ -8,15 +8,14 @@ locals {
   hc_port    = coalesce(var.health_check.port, var.target_port)
 
   default_liveness_probe = local.hc_enabled && var.liveness_probe == null ? {
-    transport                        = "HTTP"
-    port                             = local.hc_port
-    path                             = var.health_check.liveness_path
-    host                             = null
-    initial_delay                    = var.health_check.liveness_initial_delay
-    interval_seconds                 = var.health_check.liveness_interval_seconds
-    timeout                          = var.health_check.liveness_timeout
-    failure_count_threshold          = var.health_check.liveness_failure_count_threshold
-    termination_grace_period_seconds = null
+    transport               = "HTTP"
+    port                    = local.hc_port
+    path                    = var.health_check.liveness_path
+    host                    = null
+    initial_delay           = var.health_check.liveness_initial_delay
+    interval_seconds        = var.health_check.liveness_interval_seconds
+    timeout                 = var.health_check.liveness_timeout
+    failure_count_threshold = var.health_check.liveness_failure_count_threshold
   } : null
 
   default_readiness_probe = local.hc_enabled && var.readiness_probe == null ? {
@@ -32,15 +31,14 @@ locals {
   } : null
 
   default_startup_probe = local.hc_enabled && var.startup_probe == null && var.health_check.startup_path != null && var.health_check.startup_path != "" ? {
-    transport                        = "HTTP"
-    port                             = local.hc_port
-    path                             = var.health_check.startup_path
-    host                             = null
-    initial_delay                    = var.health_check.startup_initial_delay
-    interval_seconds                 = var.health_check.startup_interval_seconds
-    timeout                          = var.health_check.startup_timeout
-    failure_count_threshold          = var.health_check.startup_failure_count_threshold
-    termination_grace_period_seconds = var.health_check.startup_termination_grace_period_seconds
+    transport               = "HTTP"
+    port                    = local.hc_port
+    path                    = var.health_check.startup_path
+    host                    = null
+    initial_delay           = var.health_check.startup_initial_delay
+    interval_seconds        = var.health_check.startup_interval_seconds
+    timeout                 = var.health_check.startup_timeout
+    failure_count_threshold = var.health_check.startup_failure_count_threshold
   } : null
 
   # Use ternary, not coalesce: coalesce(null, null) errors when both explicit and default probes are absent.
@@ -154,15 +152,14 @@ resource "azurerm_container_app" "main" {
       dynamic "liveness_probe" {
         for_each = local.effective_liveness_probe != null ? [local.effective_liveness_probe] : []
         content {
-          transport                        = liveness_probe.value.transport
-          port                             = liveness_probe.value.port
-          path                             = liveness_probe.value.path
-          host                             = liveness_probe.value.host
-          initial_delay                    = liveness_probe.value.initial_delay
-          interval_seconds                 = liveness_probe.value.interval_seconds
-          timeout                          = liveness_probe.value.timeout
-          failure_count_threshold          = liveness_probe.value.failure_count_threshold
-          termination_grace_period_seconds = liveness_probe.value.termination_grace_period_seconds
+          transport               = liveness_probe.value.transport
+          port                    = liveness_probe.value.port
+          path                    = liveness_probe.value.path
+          host                    = liveness_probe.value.host
+          initial_delay           = liveness_probe.value.initial_delay
+          interval_seconds        = liveness_probe.value.interval_seconds
+          timeout                 = liveness_probe.value.timeout
+          failure_count_threshold = liveness_probe.value.failure_count_threshold
         }
       }
 
@@ -184,15 +181,14 @@ resource "azurerm_container_app" "main" {
       dynamic "startup_probe" {
         for_each = local.effective_startup_probe != null ? [local.effective_startup_probe] : []
         content {
-          transport                        = startup_probe.value.transport
-          port                             = startup_probe.value.port
-          path                             = startup_probe.value.path
-          host                             = startup_probe.value.host
-          initial_delay                    = startup_probe.value.initial_delay
-          interval_seconds                 = startup_probe.value.interval_seconds
-          timeout                          = startup_probe.value.timeout
-          failure_count_threshold          = startup_probe.value.failure_count_threshold
-          termination_grace_period_seconds = startup_probe.value.termination_grace_period_seconds
+          transport               = startup_probe.value.transport
+          port                    = startup_probe.value.port
+          path                    = startup_probe.value.path
+          host                    = startup_probe.value.host
+          initial_delay           = startup_probe.value.initial_delay
+          interval_seconds        = startup_probe.value.interval_seconds
+          timeout                 = startup_probe.value.timeout
+          failure_count_threshold = startup_probe.value.failure_count_threshold
         }
       }
 

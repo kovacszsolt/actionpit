@@ -226,11 +226,10 @@ variable "health_check" {
     readiness_failure_count_threshold = optional(number, 3)
     readiness_success_count_threshold = optional(number, 1)
 
-    startup_initial_delay                    = optional(number, 0)
-    startup_interval_seconds                 = optional(number, 10)
-    startup_timeout                          = optional(number, 3)
-    startup_failure_count_threshold          = optional(number, 18)
-    startup_termination_grace_period_seconds = optional(number, null)
+    startup_initial_delay           = optional(number, 0)
+    startup_interval_seconds        = optional(number, 10)
+    startup_timeout                 = optional(number, 3)
+    startup_failure_count_threshold = optional(number, 18)
   })
   default = {}
 }
@@ -238,15 +237,14 @@ variable "health_check" {
 variable "liveness_probe" {
   description = "Optional liveness probe for the main container (TCP or HTTP/HTTPS)."
   type = object({
-    transport                        = string
-    port                             = number
-    path                             = optional(string)
-    host                             = optional(string)
-    initial_delay                    = optional(number)
-    interval_seconds                 = optional(number)
-    timeout                          = optional(number)
-    failure_count_threshold          = optional(number)
-    termination_grace_period_seconds = optional(number)
+    transport               = string
+    port                    = number
+    path                    = optional(string)
+    host                    = optional(string)
+    initial_delay           = optional(number)
+    interval_seconds        = optional(number)
+    timeout                 = optional(number)
+    failure_count_threshold = optional(number)
   })
   default = null
 }
@@ -270,15 +268,14 @@ variable "readiness_probe" {
 variable "startup_probe" {
   description = "Optional startup probe for the main container (TCP or HTTP/HTTPS)."
   type = object({
-    transport                        = string
-    port                             = number
-    path                             = optional(string)
-    host                             = optional(string)
-    initial_delay                    = optional(number)
-    interval_seconds                 = optional(number)
-    timeout                          = optional(number)
-    failure_count_threshold          = optional(number)
-    termination_grace_period_seconds = optional(number)
+    transport               = string
+    port                    = number
+    path                    = optional(string)
+    host                    = optional(string)
+    initial_delay           = optional(number)
+    interval_seconds        = optional(number)
+    timeout                 = optional(number)
+    failure_count_threshold = optional(number)
   })
   default = null
 }
