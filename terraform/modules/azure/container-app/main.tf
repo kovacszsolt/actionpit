@@ -67,6 +67,17 @@ resource "azurerm_container_app" "main" {
     transport                  = var.ingress_transport
     allow_insecure_connections = var.allow_insecure_connections
 
+    dynamic "cors" {
+      for_each = var.cors != null ? [var.cors] : []
+      content {
+        allowed_origins           = cors.value.allowed_origins
+        allow_credentials_enabled = cors.value.allow_credentials_enabled
+        allowed_headers           = cors.value.allowed_headers
+        allowed_methods           = cors.value.allowed_methods
+        exposed_headers           = cors.value.exposed_headers
+        max_age_in_seconds        = cors.value.max_age_in_seconds
+      }
+    }
 
     traffic_weight {
       percentage      = 100

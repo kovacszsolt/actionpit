@@ -43,6 +43,19 @@ variable "allow_insecure_connections" {
   default     = false
 }
 
+variable "cors" {
+  description = "Optional Container Apps ingress CORS policy (platform-level). Set null to omit."
+  type = object({
+    allowed_origins            = list(string)
+    allow_credentials_enabled  = optional(bool, false)
+    allowed_headers            = optional(list(string))
+    allowed_methods            = optional(list(string))
+    exposed_headers            = optional(list(string))
+    max_age_in_seconds         = optional(number)
+  })
+  default = null
+}
+
 variable "min_replicas" {
   description = "Minimum number of replicas"
   type        = number
