@@ -19,6 +19,8 @@ resource "azurerm_container_app_environment" "main" {
   name                       = var.environment_name
   location                   = var.location
   resource_group_name        = var.resource_group_name
+  # azurerm >= 5.0 requires logs_destination when log_analytics_workspace_id is set
+  logs_destination           = "log-analytics"
   log_analytics_workspace_id = local.log_analytics_workspace_id
 
   lifecycle {
