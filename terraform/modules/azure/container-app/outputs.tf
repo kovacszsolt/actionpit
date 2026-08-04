@@ -18,6 +18,12 @@ output "ingress_fqdn" {
   value       = try(azurerm_container_app.main.ingress[0].fqdn, null)
 }
 
+output "custom_domain_verification_id" {
+  description = "asuid TXT token for binding a custom hostname to this Container App"
+  value       = azurerm_container_app.main.custom_domain_verification_id
+  sensitive   = true
+}
+
 output "app_url" {
   description = "Application URL (default *.azurecontainerapps.io hostname)"
   value       = "https://${azurerm_container_app.main.latest_revision_fqdn}"
