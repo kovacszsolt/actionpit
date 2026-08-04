@@ -72,6 +72,12 @@ variable "inbound_bucket_name" {
   }
 }
 
+variable "inbound_bucket_force_destroy" {
+  description = "Allow Terraform to delete the inbound bucket even when it contains received emails."
+  type        = bool
+  default     = true
+}
+
 variable "inbound_recipients" {
   description = "SES receipt rule recipients. Defaults to the domain (catch-all for that domain)."
   type        = list(string)

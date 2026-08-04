@@ -14,7 +14,8 @@ locals {
 resource "aws_s3_bucket" "inbound" {
   count = var.enable_inbound ? 1 : 0
 
-  bucket = var.inbound_bucket_name
+  bucket        = var.inbound_bucket_name
+  force_destroy = var.inbound_bucket_force_destroy
 
   tags = merge(var.tags, { Purpose = "ses-inbound" })
 
