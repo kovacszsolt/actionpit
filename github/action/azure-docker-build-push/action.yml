@@ -29,7 +29,7 @@ inputs:
   version_number_suffix:
     description: Suffix for the version number.
     required: false
-    default: ${github.run_number}
+    default: ${{ github.run_number }}
 
 outputs:
   version_number:
@@ -58,7 +58,7 @@ runs:
     - id: version_number
       name: Version Number
       shell: bash
-      run: echo "VERSION_NUMBER=${{ inputs.version_number_prefix }}${inputs.version_number_suffix}}" >> "$GITHUB_OUTPUT"
+      run: echo "VERSION_NUMBER=${{ inputs.version_number_prefix }}${{ inputs.version_number_suffix }}" >> "$GITHUB_OUTPUT"
 
     - name: Docker login
       uses: docker/login-action@v4
@@ -74,7 +74,7 @@ runs:
         images: ${{ inputs.registry }}/${{ inputs.image_name }}
         tags: |
           type=ref,event=branch
-          type=raw,value=${{ inputs.version_number_prefix }}${inputs.version_number_suffix}}
+          type=raw,value=${{ inputs.version_number_prefix }}${{ inputs.version_number_suffix }}
     - name: Build and Push
       uses: docker/build-push-action@v7
       with:
