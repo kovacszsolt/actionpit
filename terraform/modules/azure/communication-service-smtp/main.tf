@@ -15,7 +15,7 @@ resource "azuread_application_password" "smtp" {
 
 resource "azurerm_role_assignment" "email_sender" {
   scope                = var.communication_service_id
-  role_definition_name = "Email Sender"
+  role_definition_name = var.role_definition_name
   principal_id         = azuread_service_principal.smtp.object_id
 }
 

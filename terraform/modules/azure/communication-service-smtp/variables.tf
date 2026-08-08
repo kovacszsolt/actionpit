@@ -18,3 +18,9 @@ variable "smtp_username_resource_name" {
   type        = string
   default     = "smtp"
 }
+
+variable "role_definition_name" {
+  description = "RBAC role on the Communication Service (ACS SMTP needs Read/Write + EmailServices/write)."
+  type        = string
+  default     = "Communication and Email Service Owner"
+}
