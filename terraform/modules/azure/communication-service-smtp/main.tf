@@ -20,7 +20,7 @@ resource "azurerm_role_assignment" "email_sender" {
 }
 
 resource "azapi_resource" "smtp_username" {
-  type      = "Microsoft.Communication/communicationServices/smtpUsernames@2023-06-01-preview"
+  type      = "Microsoft.Communication/communicationServices/smtpUsernames@2025-09-01"
   name      = var.smtp_username_resource_name
   parent_id = var.communication_service_id
 
