@@ -45,6 +45,7 @@ Full table also in **[terraform-modules.md](../../terraform-modules.md)** (may l
 | `cae-postgres-vnet` | **VNet** with CAE-delegated subnet + PostgreSQL Flexible Server subnet. |
 | `cognitive-openai-deployments` | **Azure OpenAI** model deployments on an existing cognitive account. |
 | `communication-service` | **Azure Communication Services** (SMS, voice; optional email domain). |
+| `communication-service-smtp` | **SMTP AUTH** (Entra app + Email Sender + ACS SMTP username). |
 | `container-app` | Single **Container App** (image, ingress, secrets, optional custom domain). |
 | `container-app-alerts` | **Metric alerts** for an existing Container App. |
 | `container-app-environment` | **Container Apps Environment** with Log Analytics. |
@@ -136,6 +137,7 @@ Full table also in **[terraform-modules.md](../../terraform-modules.md)** (may l
 ### Communication and email
 
 - **`communication-service`** – Azure Communication Services; optional email domain association.
+- **`communication-service-smtp`** – Entra app, Email Sender RBAC, ACS SMTP username; outputs `smtp_username` / `smtp_password`.
 - **`email-communication-service`** – Email Communication Service resource.
 - **`email-communication-service-domain`** – Custom domain and verification for sending.
 
