@@ -78,6 +78,12 @@ variable "acm_certificate_arn" {
   default     = null
 }
 
+variable "web_acl_id" {
+  description = "Optional WAFv2 web ACL ARN (CLOUDFRONT scope). Required for CloudFront flat-rate pricing plans."
+  type        = string
+  default     = null
+}
+
 variable "viewer_protocol_policy" {
   description = "Viewer protocol policy for the default cache behavior."
   type        = string

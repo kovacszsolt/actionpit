@@ -77,13 +77,24 @@ variable "default_root_object" {
 }
 
 variable "price_class" {
-  description = "CloudFront price class."
+  description = "CloudFront price class. Ignored when pricing_plan is a flat-rate tier (those plans include the global CDN)."
   type        = string
   default     = "PriceClass_100"
 
   validation {
     condition     = contains(["PriceClass_All", "PriceClass_200", "PriceClass_100"], var.price_class)
     error_message = "price_class must be PriceClass_All, PriceClass_200, or PriceClass_100."
+  }
+}
+
+variable "pricing_plan" {
+  description = "CloudFront billing. PAY_AS_YOU_GO uses classic usage pricing. FREE, PRO, BUSINESS, and PREMIUM subscribe the distribution to a CloudFront flat-rate plan (creates a CLOUDFRONT-scope WAF web ACL; AWS WAF rule groups are not used because plans require individual rules)."
+  type        = string
+  default     = "PAY_AS_YOU_GO"
+
+  validation {
+    condition     = contains(["PAY_AS_YOU_GO", "FREE", "PRO", "BUSINESS", "PREMIUM"], var.pricing_plan)
+    error_message = "pricing_plan must be PAY_AS_YOU_GO, FREE, PRO, BUSINESS, or PREMIUM."
   }
 }
 

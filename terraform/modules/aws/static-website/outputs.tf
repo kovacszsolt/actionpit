@@ -56,6 +56,16 @@ output "cloudfront_domain_name" {
   value       = module.cloudfront.domain_name
 }
 
+output "pricing_plan" {
+  description = "CloudFront billing plan (PAY_AS_YOU_GO or a flat-rate tier)."
+  value       = var.pricing_plan
+}
+
+output "waf_web_acl_arn" {
+  description = "WAFv2 web ACL ARN attached for a flat-rate pricing plan, if any."
+  value       = local.use_flat_rate_plan ? aws_wafv2_web_acl.pricing_plan[0].arn : null
+}
+
 output "route53_alias_fqdn" {
   description = "FQDN of the Route53 alias record pointing to CloudFront."
   value       = module.dns.alias_record_fqdns[local.route53_record_name]

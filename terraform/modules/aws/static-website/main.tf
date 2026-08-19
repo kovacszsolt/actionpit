@@ -1,4 +1,7 @@
 locals {
+  use_flat_rate_plan     = var.pricing_plan != "PAY_AS_YOU_GO"
+  cloudfront_price_class = local.use_flat_rate_plan ? "PriceClass_All" : var.price_class
+
   route53_record_name = var.hostname == var.zone_name ? "@" : trimsuffix(var.hostname, ".${var.zone_name}")
 
   managed_route53_record_names = {
@@ -53,9 +56,10 @@ module "cloudfront" {
   site_mode                       = var.site_mode
   spa_fallback                    = var.spa_fallback
   static_site_index_rewrite       = var.static_site_index_rewrite
-  price_class                     = var.price_class
+  price_class                     = local.cloudfront_price_class
   aliases                         = local.cloudfront_aliases
   acm_certificate_arn             = module.acm.certificate_arn
+  web_acl_id                      = local.use_flat_rate_plan ? aws_wafv2_web_acl.pricing_plan[0].arn : null
   tags                            = var.tags
 }
 
