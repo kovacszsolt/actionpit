@@ -30,3 +30,9 @@ variable "role_definition_name" {
   type        = string
   default     = "Contributor"
 }
+
+variable "additional_role_definition_names" {
+  description = "Extra Azure RBAC roles on the same scope(s) as the primary role (e.g. Storage Blob Data Contributor for --auth-mode login)."
+  type        = list(string)
+  default     = []
+}
