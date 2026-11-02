@@ -2,7 +2,7 @@ locals {
   zone_id = var.create_zone ? aws_route53_zone.main[0].zone_id : var.zone_id
 
   record_name = {
-    for name, _ in merge(var.alias_records, var.cname_records, var.txt_records, var.mx_records) :
+    for name, _ in merge(var.alias_records, var.a_records, var.cname_records, var.txt_records, var.mx_records) :
     name => name == "@" ? "" : name
   }
 }
@@ -29,6 +29,16 @@ resource "aws_route53_record" "alias" {
     zone_id                = each.value.hosted_zone_id
     evaluate_target_health = each.value.evaluate_target_health
   }
+}
+
+resource "aws_route53_record" "a" {
+  for_each = var.a_records
+
+  zone_id = local.zone_id
+  name    = local.record_name[each.key]
+  type    = "A"
+  ttl     = each.value.ttl
+  records = each.value.records
 }
 
 resource "aws_route53_record" "cname" {

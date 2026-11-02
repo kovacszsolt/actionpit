@@ -35,9 +35,11 @@ Where supported, pass `tags` as `map(string)`. Align with your organisation’s 
 | `account` | Create an **AWS Organizations member account** (email, OU parent, access role, billing access). |
 | `acm` | **ACM certificate** in `us-east-1` with optional Route53 DNS validation (CloudFront-ready). |
 | `azure-container-app-dns` | Route53 **CNAME + asuid TXT** for an Azure Container Apps custom domain. |
+| `azure-static-web-app-dns-a` | Route53 **A record** (apex or subdomain) for an Azure Static Web App `stableInboundIP` or Container App static IP. |
+| `azure-static-web-app-dns-cname` | Route53 **CNAME** for an Azure Static Web App subdomain (`default_host_name`). |
 | `cloudfront` | **CloudFront distribution** in front of an S3 origin (OAC, SPA/static rewrite modes). |
 | `identity-center-account-assignment` | Assign an IAM Identity Center **user** (or group) + permission set to a member account. |
-| `route53` | **Hosted zone** (create or reuse) plus alias / CNAME / TXT / MX records. |
+| `route53` | **Hosted zone** (create or reuse) plus alias / A / CNAME / TXT / MX records. |
 | `s3` | **S3 bucket** with encryption, versioning, public-access block, optional CloudFront OAC policy. |
 | `s3-cloudfront-oac-policy` | Attach a **CloudFront OAC read policy** to an existing bucket. |
 | `ses` | **SES domain identity** (SESv2 Easy DKIM), Route53 DKIM / MAIL FROM / SPF / DMARC, configuration set, optional SMTP IAM user. |
@@ -54,9 +56,11 @@ Where supported, pass `tags` as `map(string)`. Align with your organisation’s 
 
 ### DNS and certificates
 
-- **`route53`** – Create a hosted zone (`create_zone = true`) or attach records to an existing `zone_id`. Supports map-driven `alias_records`, `cname_records`, `txt_records`, and `mx_records` (relative names; `@` for apex).
+- **`route53`** – Create a hosted zone (`create_zone = true`) or attach records to an existing `zone_id`. Supports map-driven `alias_records`, `a_records`, `cname_records`, `txt_records`, and `mx_records` (relative names; `@` for apex).
 - **`acm`** – Requests a DNS-validated certificate via `aws.us_east_1`. Optionally writes validation records into `zone_id` for domains listed in `dns_validation_domains` (defaults to the primary `domain_name` so extra SANs can be validated elsewhere). Set `wait_for_validation` to wait for full issuance.
 - **`azure-container-app-dns`** – Cross-cloud helper: for `hostname` under `zone_name`, creates the Container App **CNAME** to `cname_target` and the **`asuid.<label>` TXT** with `asuid_verification_id`. Composes the `route53` module.
+- **`azure-static-web-app-dns-a`** – Creates a **single A record** (`a_target` IPv4) for `hostname`, which may be the **zone apex** (`hostname == zone_name`, emitted as `@`) or a subdomain. Use it for Azure Static Web App `properties.stableInboundIP` or a Container App Environment static IP. Note: a Static Web App apex also needs its `_dnsauth` TXT token — create that separately.
+- **`azure-static-web-app-dns-cname`** – Creates a **single CNAME** for a Static Web App subdomain pointing at `default_host_name`. Rejects the zone apex (DNS forbids an apex CNAME) — use `azure-static-web-app-dns-a` there instead.
 - **`ses`** – Verifies a **domain** with SESv2 Easy DKIM (`RSA_2048_BIT`), writes DKIM CNAMEs plus custom MAIL FROM (`mail.<domain>` by default) MX/SPF, apex SPF, and `_dmarc` TXT into `zone_id`. Creates a configuration set and (by default) an IAM SMTP user; sensitive outputs: `smtp_username`, `smtp_password` (`ses_smtp_password_v4`).
 
 ### Storage and CDN
@@ -83,6 +87,8 @@ account ──► identity-center-account-assignment
 route53 (zone) ─┬─► acm (us-east-1 validation)
                 ├─► static-website  ──► s3 + cloudfront + acm + route53 + IAM deploy
                 ├─► azure-container-app-dns  ──► route53 CNAME + asuid TXT
+                ├─► azure-static-web-app-dns-a      ──► route53 A (apex or subdomain)
+                ├─► azure-static-web-app-dns-cname  ──► route53 CNAME (subdomain only)
                 └─► ses  ──► domain identity + DKIM/MAIL FROM DNS + SMTP IAM user
 
 s3 ──► cloudfront ──► s3-cloudfront-oac-policy   (split apply / existing bucket)

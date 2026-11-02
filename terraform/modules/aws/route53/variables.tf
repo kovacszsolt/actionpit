@@ -51,6 +51,15 @@ variable "alias_records" {
   }
 }
 
+variable "a_records" {
+  description = "A records keyed by relative name (@ for zone apex)."
+  type = map(object({
+    ttl     = optional(number, 300)
+    records = list(string)
+  }))
+  default = {}
+}
+
 variable "cname_records" {
   description = "CNAME records keyed by relative name (@ for zone apex)."
   type = map(object({

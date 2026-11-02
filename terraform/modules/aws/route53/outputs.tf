@@ -18,6 +18,11 @@ output "alias_record_fqdns" {
   value       = { for name, record in aws_route53_record.alias : name => record.fqdn }
 }
 
+output "a_record_fqdns" {
+  description = "FQDNs of A records created in the zone."
+  value       = { for name, record in aws_route53_record.a : name => record.fqdn }
+}
+
 output "cname_record_fqdns" {
   description = "FQDNs of CNAME records created in the zone."
   value       = { for name, record in aws_route53_record.cname : name => record.fqdn }
