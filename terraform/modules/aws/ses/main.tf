@@ -33,6 +33,15 @@ resource "aws_sesv2_email_identity" "domain" {
   tags = var.tags
 }
 
+resource "aws_sesv2_email_identity" "email" {
+  for_each = toset(var.additional_email_identities)
+
+  email_identity         = each.value
+  configuration_set_name = aws_sesv2_configuration_set.main.configuration_set_name
+
+  tags = var.tags
+}
+
 resource "aws_sesv2_email_identity_mail_from_attributes" "domain" {
   email_identity = aws_sesv2_email_identity.domain.email_identity
 

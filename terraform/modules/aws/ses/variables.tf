@@ -3,6 +3,20 @@ variable "domain_name" {
   type        = string
 }
 
+variable "additional_email_identities" {
+  description = "Extra email addresses to register as SES identities. Each address receives a verification link (required in sandbox for From/To)."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for email in var.additional_email_identities :
+      can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", email))
+    ])
+    error_message = "Each additional_email_identities entry must look like a valid email address."
+  }
+}
+
 variable "zone_id" {
   description = "Route53 hosted zone ID for DKIM, MAIL FROM, SPF, DMARC, and optional inbound MX records."
   type        = string
