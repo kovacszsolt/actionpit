@@ -1,0 +1,67 @@
+name: Azure Container App Job deploy
+description: Log in to Azure and update a Container App Job image with build metadata env vars.
+
+inputs:
+  azure_credentials:
+    description: Service principal JSON (clientId, clientSecret, subscriptionId, tenantId).
+    required: true
+  azure_subscription_id:
+    description: Azure subscription ID.
+    required: true
+  resource_group:
+    description: Azure resource group name.
+    required: true
+  job_name:
+    description: Container App Job name.
+    required: true
+  image:
+    description: Full container image reference to deploy.
+    required: true
+  container_name:
+    description: Container name inside the job.
+    required: false
+    default: backend
+  version_number:
+    description: VERSION_NUMBER env var written onto the container.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Azure login
+      uses: azure/login@v3
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Set subscription
+      shell: bash
+      run: az account set --subscription "${{ inputs.azure_subscription_id }}"
+
+    - name: Update Container App Job image
+      shell: bash
+      env:
+        RG: ${{ inputs.resource_group }}
+        JOB: ${{ inputs.job_name }}
+        IMAGE: ${{ inputs.image }}
+        CONTAINER: ${{ inputs.container_name }}
+        VERSION_NUMBER: ${{ inputs.version_number }}
+      run: |
+        set -euo pipefail
+        if [ -z "${IMAGE:-}" ]; then
+          echo "ERROR: IMAGE is empty — pass a non-empty image input."
+          exit 1
+        fi
+        if [ -z "${JOB:-}" ]; then
+          echo "ERROR: JOB is empty — pass the Container App Job name."
+          exit 1
+        fi
+        az extension add --name containerapp --upgrade -y
+        az containerapp job update \
+          --name "$JOB" \
+          --resource-group "$RG" \
+          --image "$IMAGE" \
+          --container-name "$CONTAINER" \
+          --set-env-vars \
+            "IMAGE_GIT_SHA=${GITHUB_SHA:0:7}" \
+            "IMAGE_BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            "VERSION_NUMBER=${VERSION_NUMBER}"
