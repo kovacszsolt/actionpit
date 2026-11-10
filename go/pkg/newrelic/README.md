@@ -68,6 +68,27 @@ func main() {
 }
 ```
 
+## slog (console + Log API)
+
+HTTP services can install a default `slog` logger that prints to stdout and forwards each record to the Log API when a license key is set:
+
+```go
+lv, _ := newrelic.ParseLogLevel(os.Getenv("LOG_LEVEL"))
+nr := newrelic.NewClient(newrelic.ConfigFromEnv("my-service"))
+logger := newrelic.InstallDefaultLogger(newrelic.SlogOptions{
+    Level:       lv,
+    Format:      os.Getenv("LOG_FORMAT"), // "auto", "json", or "console"
+    ServiceName: "my-service",
+}, nr)
+_ = logger
+```
+
+| `LOG_FORMAT` | Behaviour |
+|--------------|-----------|
+| `auto` or empty | **tint** (colored) when stdout is a TTY, else JSON |
+| `console` | tint on stdout |
+| `json` | one JSON object per line |
+
 ## Behaviour
 
 - **ErrDisabled** — empty license key; `Post` and lifecycle helpers return this sentinel (no HTTP).
