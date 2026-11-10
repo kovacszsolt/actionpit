@@ -17,6 +17,7 @@ go get github.com/kovacszsolt/actionpit/go/pkg/openobserve@<ref>
 go get github.com/kovacszsolt/actionpit/go/pkg/oolifecycle@<ref>
 go get github.com/kovacszsolt/actionpit/go/pkg/ooai@<ref>
 go get github.com/kovacszsolt/actionpit/go/pkg/auth@<ref>
+go get github.com/kovacszsolt/actionpit/go/pkg/newrelic@<ref>
 ```
 
 Local development against a checkout (optional `replace`):
@@ -34,6 +35,7 @@ replace github.com/kovacszsolt/actionpit/go/pkg/openobserve => ../actionpit/go/p
 | **oolifecycle** | [`go/pkg/oolifecycle/`](../../go/pkg/oolifecycle/) | App lifecycle helpers: `app.started`, `app.stopped`, `pipeline.failed` |
 | **ooai** | [`go/pkg/ooai/`](../../go/pkg/ooai/) | AI call cost calculation and `{service}.ai.call` events |
 | **auth** | [`go/pkg/auth/`](../../go/pkg/auth/) | HS256 JWT verification (`iss=auth-ba`) plus optional Echo Bearer middleware |
+| **newrelic** | [`go/pkg/newrelic/`](../../go/pkg/newrelic/) | New Relic Log API client, CLI run lifecycle logs, error report formatting |
 
 Dependency flow:
 
@@ -42,6 +44,7 @@ ooai ────────┐
 oolifecycle ─┼──► openobserve
 
 auth (standalone; echo subpackage for Echo HTTP services)
+newrelic (standalone; stdlib HTTP to New Relic Log API)
 ```
 
 ---
@@ -249,6 +252,28 @@ context (`dev@local`, `tenant_id=1`).
 
 ---
 
+### `newrelic`
+
+Optional [New Relic Log API](https://docs.newrelic.com/docs/logs/log-api/introduction-log-api/) integration for CLIs and workers.
+
+#### Environment
+
+| Variable | Required | Default |
+|----------|----------|---------|
+| `NEW_RELIC_LICENSE_KEY` | No (disabled when empty) | — |
+| `NEW_RELIC_LOG_ENDPOINT` | No | EU Log API URL |
+| `NEW_RELIC_APP_NAME` | No | `ConfigFromEnv` default argument |
+
+#### Suggested wiring (CLI)
+
+1. `NewClient(ConfigFromEnv("my-service"))` at process start.
+2. `PublishProcessStarted` before work; `PublishRunFinished` on success or failure.
+3. Use `FormatErrorReport` for stderr and `error_detail` on failures; ignore `ErrDisabled` when the license key is unset.
+
+Details: [`go/pkg/newrelic/README.md`](../../go/pkg/newrelic/README.md).
+
+---
+
 ## Suggested wiring (long-running job / cron)
 
 1. `openobserve.LoadEnv(...)` at startup; fail fast if OpenObserve output is misconfigured.
@@ -274,6 +299,7 @@ context (`dev@local`, `tenant_id=1`).
 | [`go/pkg/oolifecycle/`](../../go/pkg/oolifecycle/) | Source + tests |
 | [`go/pkg/ooai/`](../../go/pkg/ooai/) | Source + tests |
 | [`go/pkg/auth/`](../../go/pkg/auth/) | Source + tests |
+| [`go/pkg/newrelic/`](../../go/pkg/newrelic/) | Source + tests |
 | [`docs/github-action/README.md`](../github-action/README.md) | GitHub Actions catalogue |
 | [`docs/terraform/aws/README.md`](../terraform/aws/README.md) | Terraform AWS modules |
 | [`docs/terraform/azure/README.md`](../terraform/azure/README.md) | Terraform Azure modules |
