@@ -1,0 +1,53 @@
+name: Azure Static Web App deploy
+description: Upload a pre-built static site directory to Azure Static Web Apps, optionally after downloading a dist artifact.
+
+inputs:
+  deploy_path:
+    description: Directory containing static files to upload (relative to the repository workspace root).
+    required: true
+  azure_static_web_apps_api_token:
+    description: Azure Static Web Apps deployment token (API key).
+    required: true
+  artifact_name:
+    description: Name of the uploaded dist artifact to download into deploy_path; empty skips download.
+    required: false
+    default: ""
+  api_location:
+    description: API source path relative to the repository root; leave empty for static-only apps.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Download dist artifact
+      if: ${{ inputs.artifact_name != '' }}
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.deploy_path }}
+
+    - name: Verify deploy directory
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.deploy_path }}
+      run: |
+        set -euo pipefail
+        if [ ! -d "$DEPLOY_PATH" ]; then
+          echo "ERROR: deploy_path does not exist: $DEPLOY_PATH"
+          exit 1
+        fi
+        if [ -z "$(find "$DEPLOY_PATH" -mindepth 1 -maxdepth 1 2>/dev/null | head -1)" ]; then
+          echo "ERROR: deploy_path is empty: $DEPLOY_PATH"
+          exit 1
+        fi
+
+    - name: Deploy to Azure Static Web Apps
+      uses: Azure/static-web-apps-deploy@v1
+      with:
+        azure_static_web_apps_api_token: ${{ inputs.azure_static_web_apps_api_token }}
+        action: upload
+        app_location: ${{ inputs.deploy_path }}
+        api_location: ${{ inputs.api_location }}
+        output_location: ""
+        skip_app_build: true

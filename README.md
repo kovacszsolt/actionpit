@@ -28,6 +28,7 @@ uses: kovacszsolt/actionpit/github/action/<action-name>@<ref>
 | [`azure-docker-build-push`](github/action/azure-docker-build-push/) | Bump semver, build & push an image to Azure Container Registry |
 | [`azure-container-app-deploy`](github/action/azure-container-app-deploy/) | Update a Container App image (+ build metadata env vars) |
 | [`azure-container-app-job-deploy`](github/action/azure-container-app-job-deploy/) | Update a Container App Job image (+ build metadata env vars) |
+| [`azure-static-web-app-deploy`](github/action/azure-static-web-app-deploy/) | Upload a pre-built static directory to Azure Static Web Apps |
 | [`frontend-pnpm-build`](github/action/frontend-pnpm-build/) | Install & build a pnpm Vite frontend, upload `dist` artifact |
 | [`frontend-s3-deploy`](github/action/frontend-s3-deploy/) | Sync a `dist` artifact to S3 and optionally invalidate CloudFront |
 | [`discord-deploy-notification`](github/action/discord-deploy-notification/) | Post a Discord webhook with repo / branch / actor / commit |

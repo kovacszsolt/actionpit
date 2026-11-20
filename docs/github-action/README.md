@@ -37,6 +37,9 @@ Examples:
 | **discord-deploy-notification** | [`github/action/discord-deploy-notification/`](../../github/action/discord-deploy-notification/) | [discord-deploy-notification.md](../discord-deploy-notification.md) | Post a Discord webhook message (content + embed: repo, branch, actor, commit). |
 | **version-number** | [`github/action/version-number/`](../../github/action/version-number/) | [version-number.md](../version-number.md) | Read / bump / persist a semver (`X.Y.Z`) in a GitHub Environment variable. |
 | **azure-docker-build-push** | [`github/action/azure-docker-build-push/`](../../github/action/azure-docker-build-push/) | _(this page)_ | Bump semver, build & push a Docker image to **Azure Container Registry** with metadata tags and layer cache. |
+| **azure-static-web-app-deploy** | [`github/action/azure-static-web-app-deploy/`](../../github/action/azure-static-web-app-deploy/) | _(this page)_ | Upload a pre-built static directory to **Azure Static Web Apps** (optional artifact download). |
+| **frontend-s3-deploy** | [`github/action/frontend-s3-deploy/`](../../github/action/frontend-s3-deploy/) | _(this page)_ | Download dist artifact, sync to S3, optional CloudFront invalidation. |
+| **frontend-pnpm-build** | [`github/action/frontend-pnpm-build/`](../../github/action/frontend-pnpm-build/) | _(this page)_ | pnpm install/build, `dist/health.json`, upload dist artifact. |
 
 ---
 
@@ -129,6 +132,32 @@ Example:
     dockerfile: ./Dockerfile
 
 - run: echo "Deploy ${{ steps.image.outputs.deploy_image }}"
+```
+
+### `azure-static-web-app-deploy`
+
+Uploads an already-built static site folder to **Azure Static Web Apps** (`skip_app_build: true`). Optionally downloads a GitHub Actions artifact into `deploy_path` first (typical split build/deploy job flow).
+
+| Input | Required | Default | Notes |
+|-------|:--------:|---------|-------|
+| `deploy_path` | yes | — | Directory to upload (e.g. `apps/admin/frontend/dist`). |
+| `azure_static_web_apps_api_token` | yes | — | SWA deployment token (secret). |
+| `artifact_name` | no | `""` | If set, download this artifact into `deploy_path` before upload. |
+| `api_location` | no | `""` | Azure Functions / API folder; empty for static-only. |
+
+Example (artifact from `frontend-pnpm-build`):
+
+```yaml
+deploy:
+  needs: build
+  runs-on: ubuntu-latest
+  environment: admin-frontend
+  steps:
+    - uses: kovacszsolt/actionpit/github/action/azure-static-web-app-deploy@main
+      with:
+        deploy_path: apps/admin/frontend/dist
+        artifact_name: admin-frontend-dist
+        azure_static_web_apps_api_token: ${{ secrets.ITHELLO_ADMIN_SWA_API_TOKEN }}
 ```
 
 ---
